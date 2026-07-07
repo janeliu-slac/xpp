@@ -17,28 +17,30 @@ from xpp.db import xpp_pulsepicker as pp
 
 lcls = LCLS()
 
-#stack1 = [1, 100e-6, 1, 200e-6, 1, 500e-6]
-#stack2 = [1, 100e-6, 1, 200e-6, 1, 500e-6, 1, 2000e-6, 3, 3000e-6]
+# stack1 = [1, 100e-6, 1, 200e-6, 1, 500e-6]
+# stack2 = [1, 100e-6, 1, 200e-6, 1, 500e-6, 1, 2000e-6, 3, 3000e-6]
 path = "/cds/group/pcds/pyps/apps/hutch-python/xpp/experiments/yano_lens_set"
 
 
 be.configure_defaults(distance=3.852, fwhm_unfocused=500e-6)
 
+
 def make_stack():
     return lens.LensStack(
-                x_prefix = 'XPP:SB2:MMS:13',
-                y_prefix = 'XPP:SB2:MMS:14',
-                z_prefix = 'XPP:SB2:MMS:15',
-                z_offset = 3.852, # xpp IP distance to lens_z=0
-                z_dir = -1, 
-                E = None,
-                lcls_obj = lcls,
-                mono_obj = ccm,
-                #att_obj = att,
-                att_obj = pp,
-                path = path,
-                name = 'lens_stack'
-            )
+        x_prefix='XPP:SB2:MMS:13',
+        y_prefix='XPP:SB2:MMS:14',
+        z_prefix='XPP:SB2:MMS:15',
+        z_offset=3.852,  # xpp IP distance to lens_z=0
+        z_dir=-1,
+        E=None,
+        lcls_obj=lcls,
+        mono_obj=ccm,
+        # att_obj = att,
+        att_obj=pp,
+        path=path,
+        name='lens_stack'
+    )
+
 
 lens_stack = make_stack()
 lens_stack.set_lens_set(1)
@@ -48,21 +50,21 @@ class CcmLens(FltMvInterface, PseudoPositioner):
     _real = ("ccm_energy", "beam_size")
     _pseudo = ("energy", )
 
-    #ccm_energy = OCpt(ccm.energy.energy)
+    # ccm_energy = OCpt(ccm.energy.energy)
     ccm_energy = OCpt(ccm.energy_with_acr_status.energy)
     beam_size = OCpt(lens_stack.beam_size)
-    
+
     energy = Cpt(PseudoSingleInterface)
 
     tab_whitelist = ['calc_lens_pos', 'ccm', 'stack']
     tab_component_names = True
-    
+
     def __init__(self, ccm, lens_stack, desired_beamsize=5e-6, *args, **kwargs):
         self.ccm = ccm
         self.stack = lens_stack
         self.desired_beamsize = desired_beamsize
         super().__init__(*args, **kwargs)
-    
+
     @pseudo_position_argument
     def forward(self, pseudo_pos):
         return self.RealPosition(ccm_energy=pseudo_pos.energy,
@@ -71,11 +73,11 @@ class CcmLens(FltMvInterface, PseudoPositioner):
     @real_position_argument
     def inverse(self, real_pos):
         return self.PseudoPosition(energy=real_pos.ccm_energy)
-    
+
     @pseudo_position_argument
     def move(self, position, *args, **kwargs):
         self.stack.energy = position.energy
-        st = super().move(position, *args, 
+        st = super().move(position, *args,
                           moved_cb=self.cb_open_beamstop,
                           **kwargs)
         return st
@@ -113,10 +115,9 @@ class CcmLens(FltMvInterface, PseudoPositioner):
             if isinstance(real_axis, PseudoSingle):
                 self._real_waiting.append(real_axis.parent)
             else:
-                self._real_waiting_append(real_axis)
+                self._real_waiting.append(real_axis)
 
         for real, value in zip(self._real, real_pos):
             self.log.debug("[concurrent] Moving %s to %s", real.name, value)
-            real.move(value, wait=False, moved_cb=self._real_finished, **kwargs)
-
-
+            real.move(value, wait=False,
+                      moved_cb=self._real_finished, **kwargs)
